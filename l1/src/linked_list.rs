@@ -129,29 +129,37 @@ impl LinkedList {
     fn _mtf_access(&mut self, value: u32) -> u32 {
         match self.head {
             None => {
+                // If the list is empty, add the value as the first node
                 let new_node = Box::new(Node { value, next: None });
                 self.head = Some(new_node);
                 return 0;
             }
             Some(ref mut head) => {
+                // If the head is the target value, no need to move it
                 if head.value == value {
                     return 1;
                 }
             }
         }
+    
         let mut current = &mut self.head;
         let mut searched_nodes = 1;
-        while let Some(node) = current.as_ref().unwrap().next.as_ref() {
+    
+        // Traverse the list to find the target node
+        while let Some(ref mut node) = current.as_mut().unwrap().next {
             if node.value == value {
-                let mut found_node = current.as_mut().unwrap().next.take();
-                let head = self.head.take();
-                found_node.as_mut().unwrap().next = head;
-                self.head = found_node;
+                // Found the target node, move it to the front
+                let mut found_node = current.as_mut().unwrap().next.take(); // Remove the node
+                current.as_mut().unwrap().next = found_node.as_mut().unwrap().next.take(); // Update the `next` pointer of the previous node
+                found_node.as_mut().unwrap().next = self.head.take(); // Point the found node to the current head
+                self.head = found_node; // Update the head to the found node
                 return searched_nodes + 1;
             }
             searched_nodes += 1;
             current = &mut current.as_mut().unwrap().next;
         }
+    
+        // If the value is not found, add it to the back
         let new_node = Box::new(Node { value, next: None });
         current.as_mut().unwrap().next = Some(new_node);
         searched_nodes
@@ -297,11 +305,11 @@ mod tests {
     #[test]
     fn test_mtf_access() {
         let mut list = LinkedList::new(ListType::MoveToFront);
-        let access_data = [(1, 0), (2, 1), (3, 2), (1, 1), (3, 3), (3, 1)];
+        let access_data = [(1, 0), (2, 1), (3, 2), (1, 1), (3, 3), (3, 1), (3, 1), (2, 3), (3, 2)];
         for (value, expected) in access_data {
             assert_eq!(list.access(value), expected);
         }
-        let pop_data: [Option<u32>; 4] = [Some(3), Some(1), Some(2), None];
+        let pop_data: [Option<u32>; 4] = [Some(3), Some(2), Some(1), None];
         for expected in pop_data {
             assert_eq!(list.pop(), expected);
         }
