@@ -26,8 +26,15 @@ df_grouped = df.groupby(["distribution", "n", "cache_strategy", "k"], as_index=F
 distributions = df_grouped["distribution"].unique()
 for dist in distributions:
     df_dist = df_grouped[df_grouped["distribution"] == dist]
+    
+    # Calculate avg_cost_dist_min (lowest k) and avg_cost_dist_max (highest k)
+    df_dist_min = df_dist[df_dist.groupby(["n", "cache_strategy"])["k"].transform("min") == df_dist["k"]]
+    df_dist_max = df_dist[df_dist.groupby(["n", "cache_strategy"])["k"].transform("max") == df_dist["k"]]
+    
     plt.figure(figsize=(10, 6))
-    ax = sns.lineplot(
+    
+    # Plot avg_cost for all k
+    sns.lineplot(
         data=df_dist,
         x="n",
         y="avg_cost",
@@ -35,11 +42,42 @@ for dist in distributions:
         marker="o",
         palette="tab10"
     )
-    ax.set_title(f"Average Cost vs. Endpoint (n) for Distribution: {dist}")
-    ax.set_xlabel("Endpoint (n)")
-    ax.set_ylabel("Average Cost")
+    plt.title(f"Average Cost vs. Endpoint (n) for Distribution: {dist} (All k)")
+    plt.savefig(plots_dir / f"avg_cost_all_k_{dist}.png", dpi=300, bbox_inches="tight")
+    plt.close()
+    
+    # Plot avg_cost_dist_min (lowest k)
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(
+        data=df_dist_min,
+        x="n",
+        y="avg_cost",
+        hue="cache_strategy",
+        marker="o",
+        palette="tab10"
+    )
+    plt.title(f"Average Cost vs. Endpoint (n) for Distribution: {dist} (Lowest k)")
+    plt.xlabel("Endpoint (n)")
+    plt.ylabel("Average Cost")
     plt.legend(title="Cache Strategy")
-    plt.savefig(plots_dir / f"avg_cost_{dist}.png", dpi=300, bbox_inches="tight")
+    plt.savefig(plots_dir / f"avg_cost_lowest_k_{dist}.png", dpi=300, bbox_inches="tight")
+    plt.close()
+    
+    # Plot avg_cost_dist_max (highest k)
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(
+        data=df_dist_max,
+        x="n",
+        y="avg_cost",
+        hue="cache_strategy",
+        marker="o",
+        palette="tab10"
+    )
+    plt.title(f"Average Cost vs. Endpoint (n) for Distribution: {dist} (Highest k)")
+    plt.xlabel("Endpoint (n)")
+    plt.ylabel("Average Cost")
+    plt.legend(title="Cache Strategy")
+    plt.savefig(plots_dir / f"avg_cost_highest_k_{dist}.png", dpi=300, bbox_inches="tight")
     plt.close()
 
 # ---------------------------------------------------------------------
@@ -85,17 +123,25 @@ plt.savefig(plots_dir / "avg_cost_vs_k_n100.png", dpi=300, bbox_inches="tight")
 plt.close()
 
 # ---------------------------------------------------------------------
-# Additional Plot 3: Heatmap for FIFO & Uniform.
-# This heatmap shows the variation of average cost with n (rows) and k (columns).
+# Additional Plot 3: For n = 2, plot average cost vs. cache size (k).
 # ---------------------------------------------------------------------
-df_fifo_uniform = df_grouped[(df_grouped["cache_strategy"] == "FIFO") & (df_grouped["distribution"] == "Uniform")]
-pivot = df_fifo_uniform.pivot(index="n", columns="k", values="avg_cost")
-plt.figure(figsize=(8, 6))
-ax = sns.heatmap(pivot, annot=True, fmt=".2f", cmap="viridis")
-ax.set_title("Heatmap of Average Cost for FIFO & Uniform")
+df_n2 = df_grouped[df_grouped["n"] == 20]
+plt.figure(figsize=(10, 6))
+ax = sns.lineplot(
+    data=df_n2,
+    x="k",
+    y="avg_cost",
+    hue="cache_strategy",
+    style="distribution",
+    markers=True,
+    dashes=False,
+    palette="tab10"
+)
+ax.set_title("Average Cost vs. Cache Size (k) for n = 20")
 ax.set_xlabel("Cache Size (k)")
-ax.set_ylabel("Endpoint (n)")
-plt.savefig(plots_dir / "heatmap_FIFO_Uniform.png", dpi=300, bbox_inches="tight")
+ax.set_ylabel("Average Cost")
+plt.legend(title="Cache Strategy / Distribution", bbox_to_anchor=(1.05, 1), loc="upper left")
+plt.savefig(plots_dir / "avg_cost_vs_k_n2.png", dpi=300, bbox_inches="tight")
 plt.close()
 
 print("All plots generated and saved in the 'plots' directory.")
