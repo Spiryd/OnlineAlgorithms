@@ -13,8 +13,14 @@ df = pd.read_csv(data_path, sep=';')
 df['optimum'] = np.ceil(df['item_sum'])
 df['competitive_ratio'] = df['bin_count'] / df['optimum']
 
+# Define the consistent order of strategies
+strategy_order = ['NextFit', 'RandomFit', 'FirstFit', 'BestFit', 'WorstFit']
+
+# Define a consistent color palette
+palette = sns.color_palette("Set2", n_colors=len(strategy_order))
+strategy_palette = dict(zip(strategy_order, palette))
+
 sns.set(style="whitegrid")
-palette = sns.color_palette("Set2", n_colors=df['strategy'].nunique())
 
 def annotate_medians(ax, data, x_col, y_col, fmt="{:.2f}"):
     medians = data.groupby(x_col)[y_col].median()
@@ -30,7 +36,7 @@ def annotate_medians(ax, data, x_col, y_col, fmt="{:.2f}"):
 for dist, group in df.groupby('distribution'):
     fig, ax = plt.subplots()
     sns.boxplot(x='strategy', y='competitive_ratio', data=group, hue='strategy',
-                palette=palette, ax=ax, legend=False)
+                order=strategy_order, palette=strategy_palette, ax=ax, legend=False)
     annotate_medians(ax, group, 'strategy', 'competitive_ratio')
     ax.set_title(f'Competitive Ratio by Strategy ({dist})')
     ax.set_xlabel('Strategy')
@@ -43,7 +49,7 @@ for dist, group in df.groupby('distribution'):
 # Bar plot of mean competitive ratio
 fig, ax = plt.subplots()
 sns.barplot(x='distribution', y='competitive_ratio', hue='strategy', data=df,
-            estimator='mean', errorbar=None, palette=palette, ax=ax)
+            estimator='mean', errorbar=None, hue_order=strategy_order, palette=strategy_palette, ax=ax)
 ax.set_title('Mean Competitive Ratio by Strategy and Distribution')
 ax.set_xlabel('Distribution')
 ax.set_ylabel('Mean Competitive Ratio')
@@ -56,7 +62,7 @@ plt.close()
 # Overall boxplot
 fig, ax = plt.subplots()
 sns.boxplot(x='strategy', y='competitive_ratio', data=df, hue='strategy',
-            palette=palette, ax=ax, legend=False)
+            order=strategy_order, palette=strategy_palette, ax=ax, legend=False)
 annotate_medians(ax, df, 'strategy', 'competitive_ratio')
 ax.set_title('Overall Competitive Ratio by Strategy')
 ax.set_xlabel('Strategy')
@@ -68,7 +74,8 @@ plt.close()
 
 # FacetGrid — Bin Count Boxplots (2x2 layout) with proper annotations
 g = sns.FacetGrid(df, col='distribution', col_wrap=2, sharey=True, height=4, aspect=1.2)
-g.map_dataframe(sns.boxplot, x='strategy', y='bin_count', hue='strategy', palette=palette, legend=False)
+g.map_dataframe(sns.boxplot, x='strategy', y='bin_count', hue='strategy',
+                order=strategy_order, palette=strategy_palette, legend=False)
 g.set_titles(col_template="{col_name}")
 g.set_axis_labels("Strategy", "Bin Count")
 
