@@ -1,24 +1,39 @@
 use rand::seq::IteratorRandom;
 use rand::rngs::ThreadRng;
 
+/// The capacity of each bin.
 const BIN_CAPACITY: f64 = 1.0;
 
+/// Enum representing different bin packing strategies.
 #[derive(Debug, Clone)]
 pub enum PackingStrategy {
+    /// Next-Fit strategy: Place the item in the last bin if it fits; otherwise, start a new bin.
     NextFit,
+    /// Random-Fit strategy: Place the item in a randomly chosen bin that has enough space.
     RandomFit(ThreadRng),
+    /// First-Fit strategy: Place the item in the first bin that has enough space.
     FirstFit,
+    /// Best-Fit strategy: Place the item in the bin that leaves the least leftover space.
     BestFit,
+    /// Worst-Fit strategy: Place the item in the bin that leaves the most leftover space.
     WorstFit,
 }
 
+/// A manager for handling bin packing operations.
 #[derive(Debug)]
 pub struct BinPackingManager {
+    /// The packing strategy to use.
     strategy: PackingStrategy,
+    /// The list of bins, where each bin is represented by its current load.
     bins: Vec<f64>,
 }
 
 impl BinPackingManager {
+    /// Creates a new `BinPackingManager` with the specified packing strategy.
+    ///
+    /// # Arguments
+    ///
+    /// * `strategy` - The packing strategy to use.
     pub fn new(strategy: PackingStrategy) -> Self {
         BinPackingManager {
             strategy,
@@ -26,10 +41,16 @@ impl BinPackingManager {
         }
     }
 
+    /// Returns a reference to the current list of bins.
     pub fn bins(&self) -> &[f64] {
         &self.bins
     }
 
+    /// Adds an item to the bins using the specified packing strategy.
+    ///
+    /// # Arguments
+    ///
+    /// * `item` - The size of the item to add.
     pub fn add_item(&mut self, item: f64) {
         match self.strategy {
             PackingStrategy::NextFit => self._next_fit(item),
@@ -40,6 +61,7 @@ impl BinPackingManager {
         }
     }
 
+    /// Implements the Next-Fit strategy.
     fn _next_fit(&mut self, item: f64) {
         if let Some(last) = self.bins.last_mut() {
             if *last + item <= BIN_CAPACITY {
@@ -47,23 +69,19 @@ impl BinPackingManager {
                 return;
             }
         }
-        // else start a new bin
+        // Start a new bin if the item doesn't fit in the last bin.
         self.bins.push(item);
     }
 
+    /// Implements the Random-Fit strategy.
     fn _random_fit(&mut self, item: f64) {
-        // extract rng
         if let PackingStrategy::RandomFit(ref mut rng) = self.strategy {
-            // collect all indices where item fits
             let candidates = self
                 .bins
                 .iter_mut()
                 .enumerate()
                 .filter(|(_, load)| **load + item <= BIN_CAPACITY);
-            if let Some((_, load)) = candidates
-                .choose(rng)
-                .map(|(i, l)| (i, l))
-            {
+            if let Some((_, load)) = candidates.choose(rng) {
                 *load += item;
             } else {
                 self.bins.push(item);
@@ -71,6 +89,7 @@ impl BinPackingManager {
         }
     }
 
+    /// Implements the First-Fit strategy.
     fn _first_fit(&mut self, item: f64) {
         for load in &mut self.bins {
             if *load + item <= BIN_CAPACITY {
@@ -78,9 +97,11 @@ impl BinPackingManager {
                 return;
             }
         }
+        // Start a new bin if no existing bin can accommodate the item.
         self.bins.push(item);
     }
 
+    /// Implements the Best-Fit strategy.
     fn _best_fit(&mut self, item: f64) {
         let mut best_idx: Option<usize> = None;
         let mut best_leftover = BIN_CAPACITY + 1.0;
@@ -98,6 +119,7 @@ impl BinPackingManager {
         }
     }
 
+    /// Implements the Worst-Fit strategy.
     fn _worst_fit(&mut self, item: f64) {
         let mut worst_idx: Option<usize> = None;
         let mut worst_space = -1.0;
@@ -124,9 +146,6 @@ mod tests {
     #[test]
     fn test_next_fit() {
         let mut mgr = BinPackingManager::new(PackingStrategy::NextFit);
-        // 0.5 -> bin0=[0.5]
-        // 0.5 -> fits in bin0 => [1.0]
-        // 0.25 -> doesn't fit, new bin => [1.0, 0.25]
         for &item in &[0.5, 0.5, 0.25] {
             mgr.add_item(item);
         }
@@ -136,7 +155,6 @@ mod tests {
     #[test]
     fn test_random_fit() {
         let mut mgr = BinPackingManager::new(PackingStrategy::RandomFit(rng()));
-        // Four 0.5's → each bin can hold exactly two → 2 bins total
         for _ in 0..4 {
             mgr.add_item(0.5);
         }
@@ -149,9 +167,6 @@ mod tests {
     #[test]
     fn test_first_fit() {
         let mut mgr = BinPackingManager::new(PackingStrategy::FirstFit);
-        // 0.75 → bin0
-        // 0.5  → new bin1 (0.75+0.5>1.0)
-        // 0.25 → fits bin0 => [1.0, 0.5]
         for &item in &[0.75, 0.5, 0.25] {
             mgr.add_item(item);
         }
@@ -161,10 +176,6 @@ mod tests {
     #[test]
     fn test_best_fit() {
         let mut mgr = BinPackingManager::new(PackingStrategy::BestFit);
-        // 0.5  → bin0=[0.5]
-        // 0.25 → bin0=[0.75]
-        // 0.75 → new bin1=[0.75]
-        // 0.25 → best fit is bin0 (leftover=0) over bin1 ⇒ [1.0, 0.75]
         for &item in &[0.5, 0.25, 0.75, 0.25] {
             mgr.add_item(item);
         }
@@ -174,10 +185,6 @@ mod tests {
     #[test]
     fn test_worst_fit() {
         let mut mgr = BinPackingManager::new(PackingStrategy::WorstFit);
-        // 0.5  → bin0=[0.5]
-        // 0.25 → worst fit is bin0 ⇒ [0.75]
-        // 0.75 → doesn't fit in bin0, new bin1=[0.75]
-        // 0.25 → worst fit is bin0 (space=0.25) ⇒ [1.0, 0.75]
         for &item in &[0.5, 0.25, 0.75, 0.25] {
             mgr.add_item(item);
         }
