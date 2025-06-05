@@ -78,7 +78,7 @@ impl PageAllocation {
 
     /// Handle a Read(page):
     ///  - If no copy exists, cost += 1 (miss), bump counter if < threshold.
-    ///  - If counter == threshold, replicate (cost += threshold) and reset counter to 0.
+    ///  - If counter == threshold, replicate (cost += threshold)
     fn process_read(&mut self, page: usize) -> u64 {
         let mut cost = 0;
 
@@ -92,8 +92,6 @@ impl PageAllocation {
 
         if self.counts[page].0 == self.threshold {
             cost += self.add_copy(page);
-            // Reset so future writes can decay it
-            self.counts[page].0 = 0;
         }
 
         cost

@@ -38,9 +38,9 @@ sns.lineplot(
     marker="o",
     palette="tab10",
 )
-plt.title("Average Request Cost vs. Write Probability")
+plt.title("Average Cost vs. Write Probability")
 plt.xlabel("Write Probability (p)")
-plt.ylabel("Average Cost per Request")
+plt.ylabel("Average Cost")
 plt.legend(title="Threshold D")
 plt.tight_layout()
 plt.savefig(plots_dir / "line_avg_cost_vs_p.png", dpi=HIGH_DPI)
