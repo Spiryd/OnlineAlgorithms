@@ -15,6 +15,9 @@ df["p"] = df["p"].astype(float)
 df["avg_cost"] = df["avg_cost"].astype(float)
 df["avg_max_copies"] = df["avg_max_copies"].astype(float)
 
+# Create avg_cost_per_request column
+df["avg_cost_per_request"] = df["avg_cost"] / 65_536
+
 # Create output directory for plots
 plots_dir = script_dir / "plots"
 plots_dir.mkdir(exist_ok=True)
@@ -25,13 +28,14 @@ sns.set(style="whitegrid", font_scale=1.2)
 # High resolution
 HIGH_DPI = 300
 
-# 2) Bar Plot: Average Cost by p for each D
+# 2) Line Plot: Average Cost by p for each D
 plt.figure(figsize=(10, 7), dpi=HIGH_DPI)
-sns.barplot(
+sns.lineplot(
     data=df,
     x="p",
     y="avg_cost",
     hue="D",
+    marker="o",
     palette="tab10",
 )
 plt.title("Average Request Cost vs. Write Probability")
@@ -39,16 +43,17 @@ plt.xlabel("Write Probability (p)")
 plt.ylabel("Average Cost per Request")
 plt.legend(title="Threshold D")
 plt.tight_layout()
-plt.savefig(plots_dir / "bar_avg_cost_vs_p.png", dpi=HIGH_DPI)
+plt.savefig(plots_dir / "line_avg_cost_vs_p.png", dpi=HIGH_DPI)
 plt.close()
 
-# 3) Bar Plot: Average Max Copies by p for each D
+# 3) Line Plot: Average Max Copies by p for each D
 plt.figure(figsize=(10, 7), dpi=HIGH_DPI)
-sns.barplot(
+sns.lineplot(
     data=df,
     x="p",
     y="avg_max_copies",
     hue="D",
+    marker="o",
     palette="tab10",
 )
 plt.title("Average Maximum Replicas vs. Write Probability")
@@ -56,19 +61,19 @@ plt.xlabel("Write Probability (p)")
 plt.ylabel("Average Maximum Number of Copies")
 plt.legend(title="Threshold D")
 plt.tight_layout()
-plt.savefig(plots_dir / "bar_avg_max_copies_vs_p.png", dpi=HIGH_DPI)
+plt.savefig(plots_dir / "line_avg_max_copies_vs_p.png", dpi=HIGH_DPI)
 plt.close()
 
 # 4) Heatmaps
-# 4a) Heatmap of avg_cost
-pivot_cost = df.pivot(index="D", columns="p", values="avg_cost")
+# 4a) Heatmap of avg_cost_per_request
+pivot_cost = df.pivot(index="D", columns="p", values="avg_cost_per_request")
 plt.figure(figsize=(8, 5), dpi=HIGH_DPI)
-sns.heatmap(pivot_cost, annot=True, fmt=".2f", cmap="Blues")
-plt.title("Heatmap of Avg. Cost")
+sns.heatmap(pivot_cost, annot=True, fmt=".6f", cmap="Blues")
+plt.title("Heatmap of Avg. Cost per Request")
 plt.xlabel("Write Probability (p)")
 plt.ylabel("Threshold D")
 plt.tight_layout()
-plt.savefig(plots_dir / "heatmap_avg_cost.png", dpi=HIGH_DPI)
+plt.savefig(plots_dir / "heatmap_avg_cost_per_request.png", dpi=HIGH_DPI)
 plt.close()
 
 # 4b) Heatmap of avg_max_copies
