@@ -100,7 +100,7 @@ impl PageAllocation {
     /// Handle a Write(page):
     ///  - If page is already a replica: cost += (current_copies - 1).
     ///  - Otherwise: cost += current_copies. If exactly one replica is in Waiting, bump counter if < threshold.
-    ///  - If counter == threshold, replicate (cost += threshold) and reset to 0.
+    ///  - If counter == threshold, replicate (cost += threshold).
     ///  - Finally, “decay” every other page’s counter and possibly evict.
     fn process_write(&mut self, page: usize) -> u64 {
         let idx = page as usize;
@@ -128,8 +128,6 @@ impl PageAllocation {
 
         if self.counts[idx].0 == self.threshold {
             cost += self.add_copy(page);
-            // Reset after replication
-            self.counts[idx].0 = 0;
         }
 
         // Decay step: for every other page, if it's a replica with counter > 0, decrement.
